@@ -1,0 +1,6 @@
+/.bundle
+/coverage
+/pkg
+/.yardoc
+*.gem
+.DS_Store
