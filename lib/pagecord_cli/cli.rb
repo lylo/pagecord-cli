@@ -272,6 +272,8 @@ module PagecordCLI
         when /\A@/ then File.read(value[1..])
         else value
         end
+      rescue SystemCallError
+        raise Error, "Could not read #{value[1..]}"
       end
 
       def say(message)

@@ -506,4 +506,21 @@ class CLITest < Minitest::Test
       end
     end
   end
+  def test_custom_code_update_reports_an_unreadable_file
+    with_fake_client do
+      Dir.mktmpdir do |dir|
+        config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+        config.save_blog("olly", api_key: "secret")
+        error = StringIO.new
+
+        status = PagecordCLI::CLI.new(
+          [ "custom-code", "update", "--css", "@#{dir}/missing.css" ], config: config, error: error
+        ).run
+
+        assert_equal 1, status
+        assert_equal "Could not read #{dir}/missing.css\n", error.string
+        assert_empty FakeClient.requests
+      end
+    end
+  end
 end
