@@ -38,6 +38,22 @@ module PagecordCLI
       request(json_request(Net::HTTP::Patch, "/posts/#{token}", params))
     end
 
+    def appearance
+      request(Net::HTTP::Get.new(uri_for("/settings/appearance")))
+    end
+
+    def update_appearance(params)
+      request(json_request(Net::HTTP::Patch, "/settings/appearance", params))
+    end
+
+    def custom_code
+      request(Net::HTTP::Get.new(uri_for("/settings/custom_code")))
+    end
+
+    def update_custom_code(params)
+      request(json_request(Net::HTTP::Patch, "/settings/custom_code", params))
+    end
+
     def upload_attachment(path)
       uri = uri_for("/attachments")
       http_request = Net::HTTP::Post.new(uri)

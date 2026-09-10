@@ -47,16 +47,16 @@ module PagecordCLI
     def delete_blog(name)
       new_data = data
       new_data.fetch("blogs", {}).delete(name)
+      new_data.delete("default_blog") if new_data["default_blog"] == name
       write(new_data)
     end
 
-    def resolve_blog(name = nil)
-      return name if name && blog(name)
-      return name if name
+    def default_blog
+      data["default_blog"]
+    end
 
-      return blogs.keys.first if blogs.size == 1
-
-      nil
+    def save_default_blog(name)
+      write(data.merge("default_blog" => name))
     end
 
     def data

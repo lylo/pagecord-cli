@@ -237,4 +237,290 @@ class CLITest < Minitest::Test
       end
     end
   end
+  def test_blog_use_sets_the_default_blog
+    Dir.mktmpdir do |dir|
+      config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+      config.save_blog("olly", api_key: "secret")
+      config.save_blog("work", api_key: "secret")
+      output = StringIO.new
+
+      status = PagecordCLI::CLI.new([ "blog", "use", "work" ], config: config, output: output).run
+
+      assert_equal 0, status
+      assert_equal "work", config.default_blog
+      assert_includes output.string, "Using work"
+    end
+  end
+
+  def test_blog_use_rejects_an_unknown_blog
+    Dir.mktmpdir do |dir|
+      config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+      config.save_blog("olly", api_key: "secret")
+      error = StringIO.new
+
+      status = PagecordCLI::CLI.new([ "blog", "use", "nope" ], config: config, error: error).run
+
+      assert_equal 1, status
+      assert_includes error.string, "Unknown blog: nope"
+      assert_nil config.default_blog
+    end
+  end
+
+  def test_default_blog_is_used_when_several_are_configured
+    with_fake_client do
+      Dir.mktmpdir do |dir|
+        config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+        config.save_blog("olly", api_key: "secret")
+        config.save_blog("work", api_key: "work-secret")
+        config.save_default_blog("work")
+        file = File.join(dir, "hello.md")
+        File.write(file, "Hello\n")
+
+        status = PagecordCLI::CLI.new([ "publish", file ], config: config, output: StringIO.new).run
+
+        assert_equal 0, status
+        assert_equal "work-secret", FakeClient.requests.last.api_key
+      end
+    end
+  end
+
+  def test_blog_flag_beats_the_environment_and_the_default
+    with_fake_client do
+      Dir.mktmpdir do |dir|
+        config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+        config.save_blog("olly", api_key: "olly-secret")
+        config.save_blog("work", api_key: "work-secret")
+        config.save_default_blog("work")
+        ENV["PAGECORD_BLOG"] = "work"
+        output = StringIO.new
+
+        status = PagecordCLI::CLI.new([ "appearance", "show", "--blog", "olly" ], config: config, output: output).run
+
+        assert_equal 0, status
+        assert_equal "olly-secret", FakeClient.requests.last.api_key
+      ensure
+        ENV.delete("PAGECORD_BLOG")
+      end
+    end
+  end
+
+  def test_environment_beats_the_default_blog
+    with_fake_client do
+      Dir.mktmpdir do |dir|
+        config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+        config.save_blog("olly", api_key: "olly-secret")
+        config.save_blog("work", api_key: "work-secret")
+        config.save_default_blog("work")
+        ENV["PAGECORD_BLOG"] = "olly"
+
+        status = PagecordCLI::CLI.new([ "appearance", "show" ], config: config, output: StringIO.new).run
+
+        assert_equal 0, status
+        assert_equal "olly-secret", FakeClient.requests.last.api_key
+      ensure
+        ENV.delete("PAGECORD_BLOG")
+      end
+    end
+  end
+
+  def test_global_flag_is_accepted_before_the_command
+    with_fake_client do
+      Dir.mktmpdir do |dir|
+        config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+        config.save_blog("olly", api_key: "olly-secret")
+        config.save_blog("work", api_key: "work-secret")
+        output = StringIO.new
+
+        status = PagecordCLI::CLI.new([ "--blog", "work", "appearance", "show" ], config: config, output: output).run
+
+        assert_equal 0, status
+        assert_equal "work-secret", FakeClient.requests.last.api_key
+      end
+    end
+  end
+
+  def test_unknown_flag_fails_without_raising
+    Dir.mktmpdir do |dir|
+      config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+      config.save_blog("olly", api_key: "secret")
+      error = StringIO.new
+
+      status = PagecordCLI::CLI.new([ "list", "--nope" ], config: config, error: error).run
+
+      assert_equal 1, status
+      assert_includes error.string, "invalid option"
+    end
+  end
+
+  def test_help_is_shown_without_arguments
+    output = StringIO.new
+
+    status = PagecordCLI::CLI.new([ "--help" ], output: output).run
+
+    assert_equal 0, status
+    assert_includes output.string, "pagecord custom-code show"
+  end
+
+  def test_blog_list_marks_the_default
+    Dir.mktmpdir do |dir|
+      config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+      config.save_blog("olly", api_key: "secret")
+      config.save_default_blog("olly")
+      output = StringIO.new
+
+      status = PagecordCLI::CLI.new([ "blog", "list", "--json" ], config: config, output: output).run
+
+      assert_equal 0, status
+      assert_equal [ { "subdomain" => "olly", "base_url" => PagecordCLI::Config::DEFAULT_BASE_URL, "default" => true } ],
+        JSON.parse(output.string)
+    end
+  end
+
+  def test_appearance_show_prints_each_setting
+    with_fake_client do
+      Dir.mktmpdir do |dir|
+        config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+        config.save_blog("olly", api_key: "secret")
+        output = StringIO.new
+
+        status = PagecordCLI::CLI.new([ "appearance", "show" ], config: config, output: output).run
+
+        assert_equal 0, status
+        assert_includes output.string, "theme: base"
+      end
+    end
+  end
+
+  def test_appearance_update_sends_only_the_flags_given
+    with_fake_client do
+      Dir.mktmpdir do |dir|
+        config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+        config.save_blog("olly", api_key: "secret")
+
+        status = PagecordCLI::CLI.new(
+          [ "appearance", "update", "--theme", "sand", "--show-branding", "false" ],
+          config: config, output: StringIO.new
+        ).run
+
+        assert_equal 0, status
+        assert_equal({ "theme" => "sand", "show_branding" => false }, FakeClient.requests.last.args.first)
+      end
+    end
+  end
+
+  def test_appearance_update_rejects_a_non_boolean_branding_value
+    with_fake_client do
+      Dir.mktmpdir do |dir|
+        config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+        config.save_blog("olly", api_key: "secret")
+        error = StringIO.new
+
+        status = PagecordCLI::CLI.new(
+          [ "appearance", "update", "--show-branding", "maybe" ], config: config, error: error
+        ).run
+
+        assert_equal 1, status
+        assert_empty FakeClient.requests
+      end
+    end
+  end
+
+  def test_appearance_update_without_flags_fails
+    with_fake_client do
+      Dir.mktmpdir do |dir|
+        config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+        config.save_blog("olly", api_key: "secret")
+        error = StringIO.new
+
+        status = PagecordCLI::CLI.new([ "appearance", "update" ], config: config, error: error).run
+
+        assert_equal 1, status
+        assert_includes error.string, "Nothing to update"
+      end
+    end
+  end
+
+  def test_custom_code_show_writes_one_field_verbatim
+    with_fake_client do
+      Dir.mktmpdir do |dir|
+        config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+        config.save_blog("olly", api_key: "secret")
+        output = StringIO.new
+
+        status = PagecordCLI::CLI.new([ "custom-code", "show", "--css" ], config: config, output: output).run
+
+        assert_equal 0, status
+        assert_equal "body { color: red }", output.string
+      end
+    end
+  end
+
+  def test_custom_code_update_reads_a_file
+    with_fake_client do
+      Dir.mktmpdir do |dir|
+        config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+        config.save_blog("olly", api_key: "secret")
+        css = File.join(dir, "blog.css")
+        File.write(css, "body { color: blue }\n")
+
+        status = PagecordCLI::CLI.new(
+          [ "custom-code", "update", "--css", "@#{css}" ], config: config, output: StringIO.new
+        ).run
+
+        assert_equal 0, status
+        assert_equal({ "custom_css" => "body { color: blue }\n" }, FakeClient.requests.last.args.first)
+      end
+    end
+  end
+
+  def test_custom_code_update_reads_stdin
+    with_fake_client do
+      Dir.mktmpdir do |dir|
+        config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+        config.save_blog("olly", api_key: "secret")
+
+        status = PagecordCLI::CLI.new(
+          [ "custom-code", "update", "--head-html", "@-" ],
+          config: config, input: StringIO.new("<meta name=\"x\">"), output: StringIO.new
+        ).run
+
+        assert_equal 0, status
+        assert_equal({ "custom_head_html" => "<meta name=\"x\">" }, FakeClient.requests.last.args.first)
+      end
+    end
+  end
+
+  def test_quiet_suppresses_the_confirmation
+    with_fake_client do
+      Dir.mktmpdir do |dir|
+        config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+        config.save_blog("olly", api_key: "secret")
+        output = StringIO.new
+
+        status = PagecordCLI::CLI.new(
+          [ "appearance", "update", "--theme", "sand", "--quiet" ], config: config, output: output
+        ).run
+
+        assert_equal 0, status
+        assert_empty output.string
+      end
+    end
+  end
+  def test_custom_code_update_reports_an_unreadable_file
+    with_fake_client do
+      Dir.mktmpdir do |dir|
+        config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+        config.save_blog("olly", api_key: "secret")
+        error = StringIO.new
+
+        status = PagecordCLI::CLI.new(
+          [ "custom-code", "update", "--css", "@#{dir}/missing.css" ], config: config, error: error
+        ).run
+
+        assert_equal 1, status
+        assert_equal "Could not read #{dir}/missing.css\n", error.string
+        assert_empty FakeClient.requests
+      end
+    end
+  end
 end
