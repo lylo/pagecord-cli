@@ -464,28 +464,11 @@ class CLITest < Minitest::Test
         File.write(css, "body { color: blue }\n")
 
         status = PagecordCLI::CLI.new(
-          [ "custom-code", "update", "--css", "@#{css}" ], config: config, output: StringIO.new
+          [ "custom-code", "update", "--css", css ], config: config, output: StringIO.new
         ).run
 
         assert_equal 0, status
         assert_equal({ "custom_css" => "body { color: blue }\n" }, FakeClient.requests.last.args.first)
-      end
-    end
-  end
-
-  def test_custom_code_update_reads_stdin
-    with_fake_client do
-      Dir.mktmpdir do |dir|
-        config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
-        config.save_blog("olly", api_key: "secret")
-
-        status = PagecordCLI::CLI.new(
-          [ "custom-code", "update", "--head-html", "@-" ],
-          config: config, input: StringIO.new("<meta name=\"x\">"), output: StringIO.new
-        ).run
-
-        assert_equal 0, status
-        assert_equal({ "custom_head_html" => "<meta name=\"x\">" }, FakeClient.requests.last.args.first)
       end
     end
   end
@@ -514,12 +497,48 @@ class CLITest < Minitest::Test
         error = StringIO.new
 
         status = PagecordCLI::CLI.new(
-          [ "custom-code", "update", "--css", "@#{dir}/missing.css" ], config: config, error: error
+          [ "custom-code", "update", "--css", "#{dir}/missing.css" ], config: config, error: error
         ).run
 
         assert_equal 1, status
         assert_equal "Could not read #{dir}/missing.css\n", error.string
         assert_empty FakeClient.requests
+      end
+    end
+  end
+  def test_custom_code_update_says_so_when_given_content_instead_of_a_path
+    with_fake_client do
+      Dir.mktmpdir do |dir|
+        config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+        config.save_blog("olly", api_key: "secret")
+        error = StringIO.new
+
+        status = PagecordCLI::CLI.new(
+          [ "custom-code", "update", "--css", "@media print { body { color: black } }" ],
+          config: config, error: error
+        ).run
+
+        assert_equal 1, status
+        assert_equal "--css takes a file path, not the content itself\n", error.string
+        assert_empty FakeClient.requests
+      end
+    end
+  end
+
+  def test_custom_code_update_reads_every_field_from_a_file
+    with_fake_client do
+      Dir.mktmpdir do |dir|
+        config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+        config.save_blog("olly", api_key: "secret")
+        footer = File.join(dir, "footer.html")
+        File.write(footer, "<p>Thanks for reading</p>")
+
+        status = PagecordCLI::CLI.new(
+          [ "custom-code", "update", "--footer-html", footer ], config: config, output: StringIO.new
+        ).run
+
+        assert_equal 0, status
+        assert_equal({ "custom_footer_html" => "<p>Thanks for reading</p>" }, FakeClient.requests.last.args.first)
       end
     end
   end
