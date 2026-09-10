@@ -29,4 +29,28 @@ class ConfigTest < Minitest::Test
       assert_includes error.message, "Could not read #{path}"
     end
   end
+  def test_default_blog_round_trips
+    Dir.mktmpdir do |dir|
+      config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+      config.save_blog("olly", api_key: "secret")
+      config.save_default_blog("olly")
+
+      assert_equal "olly", config.default_blog
+    end
+  end
+
+  def test_deleting_the_default_blog_clears_the_default
+    Dir.mktmpdir do |dir|
+      config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+      config.save_blog("olly", api_key: "secret")
+      config.save_blog("work", api_key: "secret")
+      config.save_default_blog("olly")
+
+      config.delete_blog("work")
+      assert_equal "olly", config.default_blog
+
+      config.delete_blog("olly")
+      assert_nil config.default_blog
+    end
+  end
 end
