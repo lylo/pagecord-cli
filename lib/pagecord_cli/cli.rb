@@ -184,7 +184,7 @@ module PagecordCLI
         params = {}
         parser do |opts|
           CUSTOM_CODE_FIELDS.each do |flag, name|
-            opts.on("--#{flag} VALUE") { |value| params[name] = read_value(value) }
+            opts.on("--#{flag} PATH") { |path| params[name] = read_file(flag, path) }
           end
           opts.on("--enabled BOOL", TrueClass) { |value| params["custom_code_enabled"] = value }
         end.parse!(argv)
@@ -266,14 +266,10 @@ module PagecordCLI
         )
       end
 
-      def read_value(value)
-        case value
-        when "@-" then input.read
-        when /\A@/ then File.read(value[1..])
-        else value
-        end
+      def read_file(flag, path)
+        File.read(path)
       rescue SystemCallError
-        raise Error, "Could not read #{value[1..]}"
+        raise Error, path.match?(/[{<]/) ? "--#{flag} takes a file path, not the content itself" : "Could not read #{path}"
       end
 
       def say(message)
@@ -314,6 +310,7 @@ module PagecordCLI
             pagecord appearance show
             pagecord appearance update [options]
             pagecord custom-code show [--css|--footer-html|--head-html|--body-html]
+            pagecord custom-code update --css blog.css
             pagecord custom-code update [options]
             pagecord publish FILE [SUBDOMAIN] [options]
             pagecord draft FILE [SUBDOMAIN] [options]
@@ -339,10 +336,8 @@ module PagecordCLI
             --show-branding true|false
 
           Custom code options:
-            --css, --footer-html, --head-html, --body-html
+            --css, --footer-html, --head-html, --body-html (each takes a file path)
             --enabled true|false
-
-          Custom code values can be a literal, @path to read a file, or @- to read stdin.
         HELP
         0
       end

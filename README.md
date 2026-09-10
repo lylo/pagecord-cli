@@ -88,16 +88,18 @@ Fields: `--theme`, `--font`, `--width`, `--layout`, the six
 
 ```bash
 pagecord custom-code show --css > blog.css
-pagecord custom-code update --css @blog.css
+pagecord custom-code update --css blog.css
 ```
 
-Fields: `--css`, `--footer-html`, `--head-html`, `--body-html`, and
-`--enabled true|false`. A value can be given literally, as `@path` to read a
-file, or as `@-` to read standard input:
+`--css`, `--footer-html`, `--head-html` and `--body-html` each take the path to
+a file holding that content, so you can keep all of it under version control:
 
 ```bash
-cat blog.css | pagecord custom-code update --css @-
+pagecord custom-code update --css blog.css --footer-html footer.html
 ```
+
+There is also `--enabled true|false` to switch your head and body code off
+without deleting it.
 
 `custom-code show` prints JSON, or the raw field when you name one, so
 redirecting it to a file round-trips.
