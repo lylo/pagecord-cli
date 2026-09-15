@@ -22,7 +22,7 @@ The name should be your Pagecord subdomain. The API key is stored in
 For local testing there is an undocumented `--base-url` option:
 
 ```bash
-pagecord login myblog --base-url http://localhost:3000
+pagecord login myblog --base-url http://api.localhost:3000
 ```
 
 ## Publishing
