@@ -80,7 +80,15 @@ module PagecordCLI
 
       def request(http_request)
         http_request["Authorization"] ||= "Bearer #{api_key}"
-        response = Net::HTTP.start(http_request.uri.hostname, http_request.uri.port, use_ssl: http_request.uri.scheme == "https") do |http|
+        uri = http_request.uri
+        address = uri.hostname
+        if address.end_with?(".localhost")
+          # *.localhost is loopback by definition (RFC 6761); macOS does not resolve it
+          http_request["Host"] = "#{uri.host}:#{uri.port}"
+          address = "127.0.0.1"
+        end
+
+        response = Net::HTTP.start(address, uri.port, use_ssl: uri.scheme == "https") do |http|
           http.open_timeout = OPEN_TIMEOUT
           http.read_timeout = READ_TIMEOUT
           http.write_timeout = WRITE_TIMEOUT if http.respond_to?(:write_timeout=)
