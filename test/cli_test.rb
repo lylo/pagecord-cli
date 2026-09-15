@@ -70,7 +70,7 @@ class CLITest < Minitest::Test
       status = PagecordCLI::CLI.new([ "logout" ], config: config, error: error).run
 
       assert_equal 1, status
-      assert_includes error.string, "Please specify a subdomain"
+      assert_includes error.string, "Pass `--blog SUBDOMAIN`"
     end
   end
 
@@ -195,7 +195,7 @@ class CLITest < Minitest::Test
         status = PagecordCLI::CLI.new([ "publish", file ], config: config, error: error).run
 
         assert_equal 1, status
-        assert_includes error.string, "Please specify a subdomain"
+        assert_includes error.string, "Pass `--blog SUBDOMAIN`"
       end
     end
   end

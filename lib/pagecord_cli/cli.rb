@@ -247,12 +247,12 @@ module PagecordCLI
       end
 
       def resolve_blog(name = nil)
-        raise Error, "No blogs are configured. Run pagecord login SUBDOMAIN first." if config.blogs.empty?
+        raise Error, "No blogs are configured. Run `pagecord login SUBDOMAIN` first." if config.blogs.empty?
 
         subdomain = name || options[:blog] || ENV["PAGECORD_BLOG"] || config.default_blog ||
           (config.blogs.keys.first if config.blogs.size == 1)
 
-        raise Error, "Please specify a subdomain" unless subdomain
+        raise Error, "Several blogs are configured. Pass `--blog SUBDOMAIN`, or run `pagecord blog use SUBDOMAIN` to set a default." unless subdomain
         raise Error, "Unknown blog: #{subdomain}" unless config.blog(subdomain)
 
         subdomain
@@ -310,15 +310,14 @@ module PagecordCLI
             pagecord appearance show
             pagecord appearance update [options]
             pagecord custom-code show [--css|--footer-html|--head-html|--body-html]
-            pagecord custom-code update --css blog.css
             pagecord custom-code update [options]
             pagecord publish FILE [SUBDOMAIN] [options]
             pagecord draft FILE [SUBDOMAIN] [options]
 
           Global options:
-            --blog SUBDOMAIN
-            --json
-            --quiet
+            --blog SUBDOMAIN   which blog to act on
+            --json             machine-readable output
+            --quiet            suppress confirmation messages
 
           Publish options:
             --title TITLE

@@ -42,13 +42,6 @@ pagecord draft notes/idea.md
 The first publish creates a post and writes Pagecord metadata back into the
 file. Later publishes update the same post.
 
-If you have one blog configured, `publish`, `draft`, and `logout` can omit the
-subdomain. If you have more than one, pass the subdomain as the final argument:
-
-```bash
-pagecord publish hello.md myblog
-```
-
 See configured blogs:
 
 ```bash
@@ -63,16 +56,26 @@ pagecord logout myblog
 
 ## Choosing a blog
 
-With several blogs configured, pick a default once:
+With one blog configured, every command uses it. With several, set a default
+once:
 
 ```bash
 pagecord blog use myblog
 ```
 
-Every command works out which blog to use in this order: the subdomain passed
-as a positional argument, then `--blog myblog`, then the `PAGECORD_BLOG`
-environment variable, then the default set by `pagecord blog use`, and finally
-the only configured blog if there is just one.
+or name the blog on the command line:
+
+```bash
+pagecord appearance show --blog myblog
+```
+
+`--blog` wins over the `PAGECORD_BLOG` environment variable, which wins over
+the default. `publish`, `draft` and `logout` also take the subdomain as a
+trailing argument, which wins over all three:
+
+```bash
+pagecord publish hello.md myblog
+```
 
 ## Appearance
 
