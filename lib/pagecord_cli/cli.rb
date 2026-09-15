@@ -194,6 +194,10 @@ module PagecordCLI
         settings = client_for(resolve_blog).update_custom_code(params)
         options[:json] ? print_json(settings) : say("Updated custom code")
         0
+      rescue Client::Error => e
+        raise unless e.status == 422 && params.key?("custom_css")
+
+        raise Error, "#{e.message}.\nCommon causes: nested CSS, or @import from a host other than Google Fonts or Bunny Fonts.\nSee https://help.pagecord.com/custom-css"
       end
 
       def publish(status)
@@ -337,6 +341,9 @@ module PagecordCLI
           Custom code options:
             --css, --footer-html, --head-html, --body-html (each takes a file path)
             --enabled true|false
+
+          Custom CSS reference:
+            https://help.pagecord.com/custom-css
         HELP
         0
       end

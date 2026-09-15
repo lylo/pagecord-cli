@@ -14,13 +14,14 @@ class FakeClient
   Request = Struct.new(:api_key, :base_url, :action, :args, keyword_init: true)
 
   class << self
-    attr_accessor :requests, :upload_token, :verify_error, :update_error, :settings
+    attr_accessor :requests, :upload_token, :verify_error, :update_error, :custom_code_error, :settings
 
     def reset!
       self.requests = []
       self.upload_token = "sgid-123"
       self.verify_error = nil
       self.update_error = nil
+      self.custom_code_error = nil
       self.settings = { "theme" => "base", "font" => "sans", "custom_css" => "body { color: red }", "custom_head_html" => nil }
     end
   end
@@ -69,6 +70,8 @@ class FakeClient
   end
 
   def update_custom_code(params)
+    raise self.class.custom_code_error if self.class.custom_code_error
+
     record(:update_custom_code, params)
     self.class.settings.merge(params)
   end

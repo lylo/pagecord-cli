@@ -525,6 +525,48 @@ class CLITest < Minitest::Test
     end
   end
 
+  def test_custom_code_update_explains_a_rejected_stylesheet
+    with_fake_client do
+      Dir.mktmpdir do |dir|
+        config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+        config.save_blog("olly", api_key: "secret")
+        css = File.join(dir, "blog.css")
+        File.write(css, ".post { .title { color: red } }\n")
+        FakeClient.custom_code_error = FakeClient::Error.new(422, "Custom css contains invalid or potentially unsafe content")
+        error = StringIO.new
+
+        status = PagecordCLI::CLI.new(
+          [ "custom-code", "update", "--css", css ], config: config, error: error
+        ).run
+
+        assert_equal 1, status
+        assert_includes error.string, "Custom css contains invalid or potentially unsafe content."
+        assert_includes error.string, "Common causes: nested CSS"
+        assert_includes error.string, "https://help.pagecord.com/custom-css"
+      end
+    end
+  end
+
+  def test_custom_code_update_leaves_other_rejections_alone
+    with_fake_client do
+      Dir.mktmpdir do |dir|
+        config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+        config.save_blog("olly", api_key: "secret")
+        footer = File.join(dir, "footer.html")
+        File.write(footer, "<p>hi</p>\n")
+        FakeClient.custom_code_error = FakeClient::Error.new(422, "Custom footer html is invalid")
+        error = StringIO.new
+
+        status = PagecordCLI::CLI.new(
+          [ "custom-code", "update", "--footer-html", footer ], config: config, error: error
+        ).run
+
+        assert_equal 1, status
+        assert_equal "Custom footer html is invalid\n", error.string
+      end
+    end
+  end
+
   def test_custom_code_update_reads_every_field_from_a_file
     with_fake_client do
       Dir.mktmpdir do |dir|
