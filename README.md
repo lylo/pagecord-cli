@@ -8,6 +8,12 @@ Publish local Markdown and HTML files to [Pagecord](https://pagecord.com).
 gem install pagecord-cli
 ```
 
+Needs Ruby 3.2 or newer. The Ruby that ships with macOS is too old, so:
+
+- **macOS**: `brew install ruby`, or a version manager like [mise](https://mise.jdx.dev)
+- **Windows**: [RubyInstaller](https://rubyinstaller.org)
+- **Linux**: your package manager, if it offers 3.2 or newer; otherwise [mise](https://mise.jdx.dev)
+
 ## Login
 
 Generate an API key from **Settings > API** in Pagecord, then save it locally:
