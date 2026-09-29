@@ -79,6 +79,19 @@ and HTML otherwise. Other flags: `--title`, `--status draft|published`,
 `--slug`, `--published-at`, `--tags`, `--canonical-url`, `--locale` and
 `--hidden`/`--no-hidden`. `--json` prints the full response.
 
+## Agent skill
+
+The gem includes a skill that teaches coding agents such as Claude Code to use
+the CLI:
+
+```bash
+pagecord skill              # print it
+pagecord skill install      # install it for your agents
+```
+
+`install` writes it to `~/.agents/skills/pagecord` and links it into
+`~/.claude/skills`. Run it again after upgrading the gem.
+
 ## Choosing a blog
 
 With one blog configured, every command uses it. With several, set a default

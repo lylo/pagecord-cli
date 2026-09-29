@@ -2,6 +2,7 @@
 
 require "io/console"
 require "json"
+require "fileutils"
 require "optparse"
 
 module PagecordCLI
@@ -20,6 +21,8 @@ module PagecordCLI
       "head-html" => "custom_head_html",
       "body-html" => "custom_body_html"
     }.freeze
+
+    SKILL_PATH = File.expand_path("SKILL.md", __dir__)
 
     attr_reader :argv, :config, :input, :output, :error, :options
 
@@ -48,6 +51,7 @@ module PagecordCLI
       when "custom-code" then custom_code
       when "post" then records("posts")
       when "page" then records("pages")
+      when "skill" then skill
       when "publish" then publish("published")
       when "draft" then publish("draft")
       else
@@ -309,6 +313,34 @@ module PagecordCLI
         params
       end
 
+      def skill
+        case argv.shift
+        when nil then output.print File.read(SKILL_PATH)
+        when "install" then install_skill
+        else return fail_with("Usage: pagecord skill [install]")
+        end
+        0
+      end
+
+      def install_skill
+        dir = File.join(Dir.home, ".agents", "skills", "pagecord")
+        FileUtils.mkdir_p(dir)
+        FileUtils.cp(SKILL_PATH, dir)
+        File.write(File.join(dir, ".installed-version"), VERSION)
+        say "Installed the Pagecord skill to #{dir}"
+
+        link = File.join(Dir.home, ".claude", "skills", "pagecord")
+        return if File.symlink?(link) && File.readlink(link) == dir
+
+        if File.exist?(link) || File.symlink?(link)
+          error.puts "#{link} already exists, so Claude Code will keep using that. Remove it and run this again to use this skill."
+        else
+          FileUtils.mkdir_p(File.dirname(link))
+          File.symlink(dir, link)
+          say "Linked it into #{link}"
+        end
+      end
+
       def publish(status)
         overrides = {}
         parser do |opts|
@@ -423,6 +455,7 @@ module PagecordCLI
         output.puts <<~HELP
           Usage:
             pagecord version
+            pagecord skill [install]
             pagecord login SUBDOMAIN
             pagecord logout [SUBDOMAIN]
             pagecord blog list
