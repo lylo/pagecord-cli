@@ -122,6 +122,7 @@ module ClientSwap
     FakeClient.reset!
     yield
   ensure
+    FakeClient.reset!
     PagecordCLI.send(:remove_const, :Client)
     PagecordCLI.const_set(:Client, original)
   end
