@@ -81,6 +81,33 @@ class FakeClient
     { "attachable_sgid" => self.class.upload_token }
   end
 
+  def list(resource, status: nil, page: nil)
+    record(:list, resource, { status: status, page: page })
+    [ { "token" => "abc123", "title" => "Hello", "status" => "draft", "published_at" => nil } ]
+  end
+
+  def show(resource, token)
+    record(:show, resource, token)
+    raise Error.new(404, "Not found") if token == "missing"
+
+    { "token" => token, "title" => "Hello", "tag_list" => [ "one", "two" ], "content" => "<p>Hi</p>" }
+  end
+
+  def create(resource, params)
+    record(:create, resource, params)
+    { "token" => "created-token" }
+  end
+
+  def update(resource, token, params)
+    record(:update, resource, token, params)
+    { "token" => token }
+  end
+
+  def delete(resource, token, permanent: false)
+    record(:delete, resource, token, permanent)
+    {}
+  end
+
   private
 
     def record(action, *args)

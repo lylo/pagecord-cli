@@ -60,6 +60,25 @@ Remove a saved blog:
 pagecord logout myblog
 ```
 
+## Posts and pages
+
+Read and change posts directly, without a local file:
+
+```bash
+pagecord post list                  # published posts, newest first
+pagecord post list --drafts
+pagecord post show TOKEN            # fields, then the HTML content
+pagecord post update TOKEN --content-file post.html --status draft
+pagecord post create --title "Hello" --content-file hello.md
+pagecord post delete TOKEN          # add --permanent to skip the bin
+```
+
+`pagecord page` takes the same commands. Lists are paged 15 at a time; pass
+`--page N` for more. `--content-file` sends Markdown when the file ends `.md`,
+and HTML otherwise. Other flags: `--title`, `--status draft|published`,
+`--slug`, `--published-at`, `--tags`, `--canonical-url`, `--locale` and
+`--hidden`/`--no-hidden`. `--json` prints the full response.
+
 ## Choosing a blog
 
 With one blog configured, every command uses it. With several, set a default

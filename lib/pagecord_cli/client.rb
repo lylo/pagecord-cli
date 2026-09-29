@@ -30,6 +30,27 @@ module PagecordCLI
       true
     end
 
+    def list(resource, status: nil, page: nil)
+      query = URI.encode_www_form({ status: status, page: page }.compact)
+      request(Net::HTTP::Get.new(uri_for(query.empty? ? resource : "#{resource}?#{query}")))
+    end
+
+    def show(resource, token)
+      request(Net::HTTP::Get.new(uri_for("#{resource}/#{token}")))
+    end
+
+    def create(resource, params)
+      request(json_request(Net::HTTP::Post, resource, params))
+    end
+
+    def update(resource, token, params)
+      request(json_request(Net::HTTP::Patch, "#{resource}/#{token}", params))
+    end
+
+    def delete(resource, token, permanent: false)
+      request(Net::HTTP::Delete.new(uri_for("#{resource}/#{token}#{"?permanent=true" if permanent}")))
+    end
+
     def create_post(params)
       request(json_request(Net::HTTP::Post, "/posts", params))
     end

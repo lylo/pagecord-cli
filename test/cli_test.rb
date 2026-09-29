@@ -584,4 +584,91 @@ class CLITest < Minitest::Test
       end
     end
   end
+
+  def test_post_list_shows_drafts
+    with_fake_client do
+      output = StringIO.new
+
+      status = PagecordCLI::CLI.new([ "post", "list", "--drafts" ], config: single_blog_config, output: output).run
+
+      assert_equal 0, status
+      assert_equal [ "posts", { status: "draft", page: nil } ], FakeClient.requests.last.args
+      assert_equal "abc123  draft  Hello\n", output.string
+    end
+  end
+
+  def test_page_show_prints_fields_then_content
+    with_fake_client do
+      output = StringIO.new
+
+      status = PagecordCLI::CLI.new([ "page", "show", "abc123" ], config: single_blog_config, output: output).run
+
+      assert_equal 0, status
+      assert_equal [ "pages", "abc123" ], FakeClient.requests.last.args
+      assert_includes output.string, "tag_list: one, two\n"
+      assert output.string.end_with?("\n<p>Hi</p>\n")
+    end
+  end
+
+  def test_post_show_reports_an_unknown_token
+    with_fake_client do
+      error = StringIO.new
+
+      status = PagecordCLI::CLI.new([ "post", "show", "missing" ], config: single_blog_config, error: error).run
+
+      assert_equal 1, status
+      assert_equal "No post with that token\n", error.string
+    end
+  end
+
+  def test_post_update_sends_markdown_content_from_a_file
+    with_fake_client do
+      Dir.mktmpdir do |dir|
+        file = File.join(dir, "post.md")
+        File.write(file, "# Hi\n")
+
+        status = PagecordCLI::CLI.new(
+          [ "post", "update", "abc123", "--content-file", file, "--status", "draft", "--no-hidden" ],
+          config: single_blog_config
+        ).run
+
+        assert_equal 0, status
+        assert_equal [ "posts", "abc123", { content: "# Hi\n", content_format: "markdown", status: "draft", hidden: false } ],
+          FakeClient.requests.last.args
+      end
+    end
+  end
+
+  def test_post_update_without_flags_fails
+    with_fake_client do
+      status = PagecordCLI::CLI.new([ "post", "update", "abc123" ], config: single_blog_config, error: StringIO.new).run
+
+      assert_equal 1, status
+      assert_empty FakeClient.requests
+    end
+  end
+
+  def test_post_create_rejects_an_unknown_status
+    with_fake_client do
+      status = PagecordCLI::CLI.new([ "post", "create", "--status", "live" ], config: single_blog_config, error: StringIO.new).run
+
+      assert_equal 1, status
+      assert_empty FakeClient.requests
+    end
+  end
+
+  def test_page_delete_can_be_permanent
+    with_fake_client do
+      status = PagecordCLI::CLI.new([ "page", "delete", "abc123", "--permanent" ], config: single_blog_config).run
+
+      assert_equal 0, status
+      assert_equal [ "pages", "abc123", true ], FakeClient.requests.last.args
+    end
+  end
+
+  private
+
+    def single_blog_config
+      PagecordCLI::Config.new(File.join(Dir.mktmpdir, ".pagecord.yml")).tap { |config| config.save_blog("olly", api_key: "secret") }
+    end
 end

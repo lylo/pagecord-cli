@@ -45,6 +45,8 @@ module PagecordCLI
       when "blog" then blog
       when "appearance" then appearance
       when "custom-code" then custom_code
+      when "post" then records("posts")
+      when "page" then records("pages")
       when "publish" then publish("published")
       when "draft" then publish("draft")
       else
@@ -200,6 +202,112 @@ module PagecordCLI
         raise Error, "#{e.message}.\nCommon causes: nested CSS, or @import from a host other than Google Fonts or Bunny Fonts.\nSee https://help.pagecord.com/custom-css"
       end
 
+      def records(resource)
+        noun = resource.chomp("s")
+
+        case argv.shift
+        when "list" then list_records(resource)
+        when "show" then show_record(resource)
+        when "create" then create_record(resource, noun)
+        when "update" then update_record(resource, noun)
+        when "delete" then delete_record(resource, noun)
+        else fail_with("Usage: pagecord #{noun} list|show|create|update|delete")
+        end
+      rescue Client::Error => e
+        raise unless e.status == 404
+
+        raise Error, "No #{noun} with that token"
+      end
+
+      def list_records(resource)
+        status = nil
+        page = nil
+        parser do |opts|
+          opts.on("--drafts") { status = "draft" }
+          opts.on("--published") { status = "published" }
+          opts.on("--page N", Integer) { |value| page = value }
+        end.parse!(argv)
+
+        records = client_for(resolve_blog).list(resource, status: status, page: page)
+
+        if options[:json]
+          print_json(records)
+        else
+          records.each do |record|
+            date = record["published_at"].to_s[0, 10]
+            output.puts [ record["token"], date.empty? ? record["status"] : date, record["title"] ].join("  ")
+          end
+        end
+
+        0
+      end
+
+      def show_record(resource)
+        parser.parse!(argv)
+        token = argv.shift
+        return fail_with("Usage: pagecord #{resource.chomp("s")} show TOKEN") unless token
+
+        record = client_for(resolve_blog).show(resource, token)
+
+        if options[:json]
+          print_json(record)
+        else
+          record.except("content").each { |key, value| output.puts "#{key}: #{value.is_a?(Array) ? value.join(", ") : value}" }
+          output.puts
+          output.puts record["content"]
+        end
+
+        0
+      end
+
+      def create_record(resource, noun)
+        params = record_params
+        record = client_for(resolve_blog).create(resource, params)
+        options[:json] ? print_json(record) : say("Created #{noun} #{record["token"]}")
+        0
+      end
+
+      def update_record(resource, noun)
+        params = record_params
+        token = argv.shift
+        return fail_with("Usage: pagecord #{noun} update TOKEN [options]") unless token
+        return fail_with("Nothing to update") if params.empty?
+
+        record = client_for(resolve_blog).update(resource, token, params)
+        options[:json] ? print_json(record) : say("Updated #{noun} #{record["token"]}")
+        0
+      end
+
+      def delete_record(resource, noun)
+        permanent = false
+        parser { |opts| opts.on("--permanent") { permanent = true } }.parse!(argv)
+        token = argv.shift
+        return fail_with("Usage: pagecord #{noun} delete TOKEN [--permanent]") unless token
+
+        client_for(resolve_blog).delete(resource, token, permanent: permanent)
+        say "Deleted #{noun} #{token}"
+        0
+      end
+
+      def record_params
+        params = {}
+        parser do |opts|
+          opts.on("--title TITLE") { |value| params[:title] = value }
+          opts.on("--content-file PATH") do |path|
+            params[:content] = read_file("content-file", path)
+            params[:content_format] = "markdown" if PostFile::MARKDOWN_EXTENSIONS.include?(File.extname(path).downcase)
+          end
+          opts.on("--status STATUS", %w[draft published]) { |value| params[:status] = value }
+          opts.on("--slug SLUG") { |value| params[:slug] = value }
+          opts.on("--published-at TIME") { |value| params[:published_at] = value }
+          opts.on("--tags TAGS") { |value| params[:tags] = value }
+          opts.on("--canonical-url URL") { |value| params[:canonical_url] = value }
+          opts.on("--[no-]hidden") { |value| params[:hidden] = value }
+          opts.on("--locale LOCALE") { |value| params[:locale] = value }
+        end.parse!(argv)
+        params
+      end
+
       def publish(status)
         overrides = {}
         parser do |opts|
@@ -315,6 +423,12 @@ module PagecordCLI
             pagecord appearance update [options]
             pagecord custom-code show [--css|--footer-html|--head-html|--body-html]
             pagecord custom-code update [options]
+            pagecord post list [--drafts|--published] [--page N]
+            pagecord post show TOKEN
+            pagecord post create [options]
+            pagecord post update TOKEN [options]
+            pagecord post delete TOKEN [--permanent]
+            pagecord page list|show|create|update|delete (as for post)
             pagecord publish FILE [SUBDOMAIN] [options]
             pagecord draft FILE [SUBDOMAIN] [options]
 
@@ -331,6 +445,13 @@ module PagecordCLI
             --canonical-url URL
             --hidden
             --locale LOCALE
+
+          Post and page options:
+            --title TITLE
+            --content-file PATH (HTML, or Markdown if it ends .md)
+            --status draft|published
+            --slug, --published-at, --tags, --canonical-url, --locale
+            --hidden, --no-hidden
 
           Appearance options:
             --theme, --font, --width, --layout
