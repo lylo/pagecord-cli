@@ -666,6 +666,15 @@ class CLITest < Minitest::Test
     end
   end
 
+  def test_version_prints_the_version
+    %w[version -v --version].each do |arg|
+      output = StringIO.new
+
+      assert_equal 0, PagecordCLI::CLI.new([ arg ], output: output).run
+      assert_equal "pagecord #{PagecordCLI::VERSION}\n", output.string
+    end
+  end
+
   private
 
     def single_blog_config

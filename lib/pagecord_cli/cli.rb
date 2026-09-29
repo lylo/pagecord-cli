@@ -34,6 +34,7 @@ module PagecordCLI
 
     def run
       return help if argv.empty? || %w[help -h --help].include?(argv.first)
+      return version if %w[version -v --version].include?(argv.first)
 
       parser.order!(argv)
       command = argv.shift
@@ -316,7 +317,7 @@ module PagecordCLI
           opts.on("--published-at TIME") { |value| overrides[:published_at] = value }
           opts.on("--tags TAGS") { |value| overrides[:tags] = value }
           opts.on("--canonical-url URL") { |value| overrides[:canonical_url] = value }
-          opts.on("--hidden") { overrides[:hidden] = true }
+          opts.on("--[no-]hidden") { |value| overrides[:hidden] = value }
           opts.on("--locale LOCALE") { |value| overrides[:locale] = value }
         end.parse!(argv)
 
@@ -412,9 +413,16 @@ module PagecordCLI
         end
       end
 
+      def version
+        options[:json] = argv.include?("--json")
+        options[:json] ? print_json({ version: VERSION }) : output.puts("pagecord #{VERSION}")
+        0
+      end
+
       def help
         output.puts <<~HELP
           Usage:
+            pagecord version
             pagecord login SUBDOMAIN
             pagecord logout [SUBDOMAIN]
             pagecord blog list
@@ -437,21 +445,16 @@ module PagecordCLI
             --json             machine-readable output
             --quiet            suppress confirmation messages
 
-          Publish options:
+          Post options (publish, draft, post and page):
             --title TITLE
             --slug SLUG
             --published-at TIME
             --tags TAGS
             --canonical-url URL
-            --hidden
             --locale LOCALE
-
-          Post and page options:
-            --title TITLE
-            --content-file PATH (HTML, or Markdown if it ends .md)
-            --status draft|published
-            --slug, --published-at, --tags, --canonical-url, --locale
             --hidden, --no-hidden
+            --content-file PATH         post/page create and update; Markdown if it ends .md
+            --status draft|published    post/page create and update
 
           Appearance options:
             --theme, --font, --width, --layout
