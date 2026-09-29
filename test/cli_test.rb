@@ -675,7 +675,48 @@ class CLITest < Minitest::Test
     end
   end
 
+  def test_skill_prints_the_skill
+    output = StringIO.new
+
+    assert_equal 0, PagecordCLI::CLI.new([ "skill" ], output: output).run
+    assert output.string.start_with?("---\nname: pagecord\n")
+  end
+
+  def test_skill_install_writes_the_skill_and_links_it_for_claude
+    with_home do |home|
+      assert_equal 0, PagecordCLI::CLI.new([ "skill", "install" ], output: StringIO.new).run
+
+      dir = File.join(home, ".agents/skills/pagecord")
+      assert_equal File.read(PagecordCLI::CLI::SKILL_PATH), File.read(File.join(dir, "SKILL.md"))
+      assert_equal PagecordCLI::VERSION, File.read(File.join(dir, ".installed-version"))
+      assert_equal dir, File.readlink(File.join(home, ".claude/skills/pagecord"))
+    end
+  end
+
+  def test_skill_install_leaves_another_claude_skill_alone
+    with_home do |home|
+      other = File.join(home, ".claude/skills/pagecord")
+      FileUtils.mkdir_p(other)
+      error = StringIO.new
+
+      assert_equal 0, PagecordCLI::CLI.new([ "skill", "install" ], output: StringIO.new, error: error).run
+
+      assert File.directory?(other)
+      refute File.symlink?(other)
+      assert_includes error.string, "already exists"
+    end
+  end
   private
+
+    def with_home
+      original = ENV["HOME"]
+      Dir.mktmpdir do |home|
+        ENV["HOME"] = home
+        yield home
+      end
+    ensure
+      ENV["HOME"] = original
+    end
 
     def single_blog_config
       PagecordCLI::Config.new(File.join(Dir.mktmpdir, ".pagecord.yml")).tap { |config| config.save_blog("olly", api_key: "secret") }
