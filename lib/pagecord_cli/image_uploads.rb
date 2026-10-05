@@ -88,7 +88,8 @@ module PagecordCLI
       end
 
       def checksum(path)
-        Digest::SHA256.file(path).hexdigest[0, 16]
+        @checksums ||= {}
+        @checksums[path] ||= Digest::SHA256.file(path).hexdigest[0, 16]
       end
 
       def filename(path)
