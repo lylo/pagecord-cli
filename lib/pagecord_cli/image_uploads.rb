@@ -1,10 +1,12 @@
 # frozen_string_literal: true
 
 require "digest"
+require "cgi/escape"
+require "uri"
 
 module PagecordCLI
   class ImageUploads
-    MARKDOWN_IMAGE = /!\[([^\]]*)\]\(([^)]+)\)/
+    MARKDOWN_IMAGE = /!\[([^\]]*)\]\(([^)"]+?)(?:\s+"([^"]*)")?\)/
     OBSIDIAN_IMAGE = /!\[\[([^\]]+)\]\]/
     IMAGE_EXTENSIONS = /\.(jpe?g|png|gif|webp)\z/i
 
@@ -20,8 +22,9 @@ module PagecordCLI
 
     def process
       with_markdown_images = content.gsub(MARKDOWN_IMAGE) do |match|
-        path = Regexp.last_match(2)
-        local_path?(path) ? attachment_tag_for(path) : match
+        alt, path, caption = Regexp.last_match.captures
+        path = decode_path(path)
+        local_path?(path) ? attachment_tag_for(path, alt: alt, caption: caption) : match
       end
 
       with_markdown_images.gsub(OBSIDIAN_IMAGE) do |match|
@@ -32,9 +35,20 @@ module PagecordCLI
 
     private
 
-      def attachment_tag_for(path)
+      def attachment_tag_for(path, alt: nil, caption: nil)
         sgid = cached_sgid(path) || upload(path)
-        %(<action-text-attachment sgid="#{sgid}"></action-text-attachment>)
+        %(<action-text-attachment sgid="#{sgid}"#{attribute("alt", alt)}#{attribute("caption", caption)}></action-text-attachment>)
+      end
+
+      def attribute(name, value)
+        %( #{name}="#{CGI.escapeHTML(value)}") unless value.to_s.empty?
+      end
+
+      # A filename can contain a literal "%", as in 100%.jpg.
+      def decode_path(path)
+        URI.decode_uri_component(path)
+      rescue ArgumentError
+        path
       end
 
       def cached_sgid(path)
@@ -74,7 +88,8 @@ module PagecordCLI
       end
 
       def checksum(path)
-        Digest::SHA256.file(path).hexdigest[0, 16]
+        @checksums ||= {}
+        @checksums[path] ||= Digest::SHA256.file(path).hexdigest[0, 16]
       end
 
       def filename(path)
