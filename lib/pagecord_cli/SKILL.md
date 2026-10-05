@@ -65,7 +65,8 @@ pagecord draft notes/idea.md         # save as a draft
 The first run writes a `pagecord_token` into the file's front matter, and later
 runs update that same post. Front matter can set `title`, `slug`, `tags`,
 `published_at`, `canonical_url`, `hidden` and `locale`. Local images written as
-`![alt](photo.jpg)` are uploaded.
+`![alt](photo.jpg "Caption")` are uploaded with their alt text and
+optional caption.
 
 ## Restyling a blog
 

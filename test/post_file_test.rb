@@ -100,6 +100,40 @@ class PostFileTest < Minitest::Test
     end
   end
 
+  def test_markdown_images_carry_alt_and_caption
+    Dir.mktmpdir do |dir|
+      image = File.join(dir, "my photo.jpg")
+      file = File.join(dir, "hello.md")
+      File.binwrite(image, "image")
+      File.write(file, %(![A "quiet" harbour](my photo.jpg "Dawn & dusk")\n))
+
+      client = FakeClient.new(api_key: "secret", base_url: "https://api.pagecord.com")
+      post_file = PagecordCLI::PostFile.new(file)
+
+      assert_equal %(<action-text-attachment sgid="sgid-123" alt="A &quot;quiet&quot; harbour" caption="Dawn &amp; dusk"></action-text-attachment>\n),
+        post_file.content_for("olly", client: client)
+    ensure
+      FakeClient.reset!
+    end
+  end
+
+  def test_markdown_image_paths_are_percent_decoded
+    Dir.mktmpdir do |dir|
+      File.binwrite(File.join(dir, "my photo.jpg"), "image")
+      File.binwrite(File.join(dir, "100%.jpg"), "image")
+      file = File.join(dir, "hello.md")
+      File.write(file, "![](my%20photo.jpg)\n![](100%.jpg)\n")
+
+      client = FakeClient.new(api_key: "secret", base_url: "https://api.pagecord.com")
+      post_file = PagecordCLI::PostFile.new(file)
+
+      assert_equal %(<action-text-attachment sgid="sgid-123"></action-text-attachment>\n) * 2,
+        post_file.content_for("olly", client: client)
+    ensure
+      FakeClient.reset!
+    end
+  end
+
   def test_unsupported_local_image_syntax_is_left_alone
     Dir.mktmpdir do |dir|
       file = File.join(dir, "hello.md")
