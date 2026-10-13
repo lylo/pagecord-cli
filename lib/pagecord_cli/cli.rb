@@ -307,6 +307,7 @@ module PagecordCLI
           opts.on("--published-at TIME") { |value| params[:published_at] = value }
           opts.on("--tags TAGS") { |value| params[:tags] = value }
           opts.on("--canonical-url URL") { |value| params[:canonical_url] = value }
+          opts.on("--link-url URL") { |value| params[:link_url] = value }
           opts.on("--[no-]hidden") { |value| params[:hidden] = value }
           opts.on("--locale LOCALE") { |value| params[:locale] = value }
         end.parse!(argv)
@@ -349,6 +350,7 @@ module PagecordCLI
           opts.on("--published-at TIME") { |value| overrides[:published_at] = value }
           opts.on("--tags TAGS") { |value| overrides[:tags] = value }
           opts.on("--canonical-url URL") { |value| overrides[:canonical_url] = value }
+          opts.on("--link-url URL") { |value| overrides[:link_url] = value }
           opts.on("--[no-]hidden") { |value| overrides[:hidden] = value }
           opts.on("--locale LOCALE") { |value| overrides[:locale] = value }
         end.parse!(argv)
@@ -484,6 +486,7 @@ module PagecordCLI
             --published-at TIME
             --tags TAGS
             --canonical-url URL
+            --link-url URL              makes it a link post: the title links here
             --locale LOCALE
             --hidden, --no-hidden
             --content-file PATH         post/page create and update; Markdown if it ends .md

@@ -148,7 +148,7 @@ class CLITest < Minitest::Test
         config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
         config.save_blog("olly", api_key: "secret")
         file = File.join(dir, "hello-world.md")
-        File.write(file, "---\ntitle: 'Front Matter'\nslug: fm-slug\ntags:\n  - obsidian\n  - cli\npublished_at: '2026-01-02T03:04:05Z'\ncanonical_url: 'https://example.com/original'\nhidden: 'false'\nlocale: en\n---\nHello\n")
+        File.write(file, "---\ntitle: 'Front Matter'\nslug: fm-slug\ntags:\n  - obsidian\n  - cli\npublished_at: '2026-01-02T03:04:05Z'\ncanonical_url: 'https://example.com/original'\nlink_url: https://example.com/article\nhidden: 'false'\nlocale: en\n---\nHello\n")
 
         status = PagecordCLI::CLI.new([ "publish", file ], config: config).run
 
@@ -159,6 +159,7 @@ class CLITest < Minitest::Test
         assert_equal "obsidian, cli", request.args.first[:tags]
         assert_equal "2026-01-02T03:04:05Z", request.args.first[:published_at]
         assert_equal "https://example.com/original", request.args.first[:canonical_url]
+        assert_equal "https://example.com/article", request.args.first[:link_url]
         assert_equal false, request.args.first[:hidden]
         assert_equal "en", request.args.first[:locale]
       end
