@@ -183,6 +183,23 @@ class CLITest < Minitest::Test
     end
   end
 
+  def test_publish_link_url_flag_overrides_front_matter
+    with_fake_client do
+      Dir.mktmpdir do |dir|
+        config = PagecordCLI::Config.new(File.join(dir, ".pagecord.yml"))
+        config.save_blog("olly", api_key: "secret")
+        file = File.join(dir, "hello-world.md")
+        File.write(file, "---\nlink_url: https://example.com/article\n---\nHello\n")
+
+        status = PagecordCLI::CLI.new([ "publish", file, "--link-url", "" ], config: config).run
+
+        assert_equal 0, status
+        request = FakeClient.requests.find { |item| item.action == :create_post }
+        assert_equal "", request.args.first[:link_url]
+      end
+    end
+  end
+
   def test_publish_requires_subdomain_for_multiple_blogs
     with_fake_client do
       Dir.mktmpdir do |dir|
