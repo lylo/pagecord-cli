@@ -486,7 +486,7 @@ module PagecordCLI
             --published-at TIME
             --tags TAGS
             --canonical-url URL
-            --link-url URL              makes it a link post: the title links here
+            --link-url URL              makes a post a link post: the title links here
             --locale LOCALE
             --hidden, --no-hidden
             --content-file PATH         post/page create and update; Markdown if it ends .md
