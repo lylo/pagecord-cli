@@ -66,7 +66,7 @@ module PagecordCLI
     def params
       publish_params = { title: title_from_metadata }
 
-      %w[slug published_at canonical_url locale].each do |key|
+      %w[slug published_at canonical_url link_url locale].each do |key|
         value = frontmatter_string(metadata[key])
         publish_params[key.to_sym] = value if value
       end

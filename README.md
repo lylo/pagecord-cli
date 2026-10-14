@@ -76,8 +76,9 @@ pagecord post delete TOKEN          # add --permanent to skip the bin
 `pagecord page` takes the same commands. Lists are paged 15 at a time; pass
 `--page N` for more. `--content-file` sends Markdown when the file ends `.md`,
 and HTML otherwise. Other flags: `--title`, `--status draft|published`,
-`--slug`, `--published-at`, `--tags`, `--canonical-url`, `--locale` and
-`--hidden`/`--no-hidden`. `--json` prints the full response.
+`--slug`, `--published-at`, `--tags`, `--canonical-url`, `--link-url` (posts
+only), `--locale` and `--hidden`/`--no-hidden`. `--json` prints the full
+response.
 
 ## Agent skill
 
@@ -165,6 +166,7 @@ Accepted by every command, before or after the command name:
 --published-at TIME
 --tags TAGS
 --canonical-url URL
+--link-url URL
 --hidden
 --locale LOCALE
 ```
@@ -182,10 +184,14 @@ tags:
   - cli
 published_at: 2026-01-02T03:04:05Z
 canonical_url: https://example.com/original
+link_url: https://example.com/an-article
 hidden: false
 locale: en
 ---
 ```
+
+`link_url` makes it a link post: the title links to that address. Use
+`--link-url ""` to turn a link post back into a normal post.
 
 If `title` is omitted, the CLI uses the filename. Use `title:` or
 `title: ""` to publish without a title.
